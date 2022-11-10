@@ -10,15 +10,17 @@ class PostURLTests(TestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        cls.author = User.objects.create_user(username='author')
         cls.client = Client()
+        cls.author = User.objects.create_user(username='author')
         cls.authorized_author = Client()
         cls.authorized_author.force_login(cls.author)
         cls.user = User.objects.create_user(username='user')
         cls.authorized_client = Client()
         cls.authorized_client.force_login(cls.user)
         cls.post = Post.objects.create(
-            author=cls.author, text='Тестовый пост', group=mixer.blend(Group)
+            author=cls.author,
+            text='Тестовый пост',
+            group=mixer.blend(Group),
         )
         cls.post_url = f'/{cls.author.username}/{cls.post.id}/'
         cls.public_urls = (
@@ -44,10 +46,14 @@ class PostURLTests(TestCase):
     def test_urls(self):
         """URL-адреса используют соответствующие шаблоны."""
         self.urls_uses_correct_template(
-            self.public_urls, self.client, HTTPStatus.OK
+            self.public_urls,
+            self.client,
+            HTTPStatus.OK,
         )
         self.urls_uses_correct_template(
-            self.private_urls, self.authorized_author, HTTPStatus.OK
+            self.private_urls,
+            self.authorized_author,
+            HTTPStatus.OK,
         )
 
     def test_urls_template_authorized(self):

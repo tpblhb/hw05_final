@@ -1,4 +1,4 @@
-{% extends 'base.html' %}
+{% extends "base.html" %}
 {% block title %}
   Запись {{ post.text|truncatewords:30 }}
 {% endblock %}
@@ -16,12 +16,12 @@
             {% endif %}
           </div>
           <div class="card-body">
-            {% include 'includes/errors.html' %}
+            {% include "includes/errors.html" %}
             <form method="post" enctype="multipart/form-data"
               {% if is_edit %}
-                action="{% url 'posts:post_edit' post.pk %}"
+                action="{% url "posts:post_edit" post.pk %}"
               {% else %}
-                action="{% url 'posts:post_create' %}"
+                action="{% url "posts:post_create" %}"
               {% endif %}
             >
               {% csrf_token %}

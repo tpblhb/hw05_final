@@ -16,14 +16,6 @@ class PostForm(forms.ModelForm):
             'password': 'Должен включать: заглавные/строчные буквы, цифры.',
         }
 
-    def clean_text(self):
-        data = self.cleaned_data['text']
-        if data == "":
-            raise forms.ValidationError(
-                'Поле "Текст поста" должно быть заполнено'
-            )
-        return data
-
 
 class CommentForm(forms.ModelForm):
     class Meta:

@@ -1,10 +1,13 @@
 from django.contrib.auth import get_user_model
 from django.db import models
 
+from core.models import author, pub_date, text
+from core.utils import truncatechars
+
 User = get_user_model()
 
 MAX_TEXT_LENGTH = 15
-MAX_TITLE_LENGTH = 10
+MAX_TITLE_LENGTH = 20
 
 
 class Group(models.Model):
@@ -21,27 +24,13 @@ class Group(models.Model):
     )
 
     def __str__(self) -> str:
-        return (
-            self.title[:MAX_TITLE_LENGTH] + '...'
-            if len(self.title) > MAX_TITLE_LENGTH
-            else self.title
-        )
+        return truncatechars(self.title, MAX_TITLE_LENGTH)
 
 
 class Post(models.Model):
-    text = models.TextField(
-        verbose_name='текст',
-        help_text='введите текст поста',
-    )
-    pub_date = models.DateTimeField(
-        verbose_name='дата публикации',
-        auto_now_add=True,
-    )
-    author = models.ForeignKey(
-        User,
-        on_delete=models.CASCADE,
-        verbose_name='автор',
-    )
+    text = text()
+    pub_date = pub_date()
+    author = author()
     group = models.ForeignKey(
         Group,
         on_delete=models.SET_NULL,
@@ -51,7 +40,7 @@ class Post(models.Model):
         help_text='выберите группу',
     )
     image = models.ImageField(
-        'Картинка',
+        'картинка',
         upload_to='posts/',
         blank=True,
     )
@@ -63,11 +52,7 @@ class Post(models.Model):
         verbose_name_plural = 'посты'
 
     def __str__(self) -> str:
-        return (
-            self.text[:MAX_TEXT_LENGTH] + '...'
-            if len(self.text) > MAX_TEXT_LENGTH
-            else self.text
-        )
+        return truncatechars(self.text, MAX_TEXT_LENGTH)
 
 
 class Comment(models.Model):
@@ -76,29 +61,17 @@ class Comment(models.Model):
         on_delete=models.CASCADE,
         related_name='comments',
         blank=True,
-        verbose_name='комментарий',
         help_text='комментарий к посту',
     )
-    author = models.ForeignKey(
-        User,
-        on_delete=models.CASCADE,
-        related_name='comments',
-        verbose_name='автор комментария',
-    )
-    text = models.TextField(
-        'текст комментария',
-        help_text='введите текст комментария',
-    )
-    created = models.DateTimeField(
-        'дата комментария',
-        auto_now_add=True,
-    )
+    author = author()
+    text = text()
+    created = pub_date()
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f'{self.text[:MAX_TEXT_LENGTH]}, author:{self.author}'
 
     class Meta:
-        ordering = ['-created']
+        ordering = ('-created',)
 
 
 class Follow(models.Model):
@@ -118,5 +91,5 @@ class Follow(models.Model):
             models.UniqueConstraint(
                 fields=['user', 'author'],
                 name='subscribe',
-            )
+            ),
         ]

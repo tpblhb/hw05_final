@@ -1,13 +1,18 @@
+import shutil
+
 from django import forms
 from django.core.cache import cache
-from django.core.files.uploadedfile import SimpleUploadedFile
-from django.test import Client, TestCase
+from django.test import Client, TestCase, override_settings
 from django.urls import reverse
 from mixer.backend.django import mixer
 
 from posts.models import Follow, Group, Post, User
+from yatube.settings import MEDIATESTS
+
+from .common import image
 
 
+@override_settings(MEDIA_ROOT=MEDIATESTS)
 class PostsPagesTests(TestCase):
     @classmethod
     def setUpClass(cls):
@@ -23,25 +28,12 @@ class PostsPagesTests(TestCase):
         cls.auth3.force_login(cls.anon3)
         Follow.objects.create(user=cls.anon, author=cls.anon3)
         cls.group = mixer.blend(Group)
-        cls.small_gif = (
-            b'\x47\x49\x46\x38\x39\x61\x02\x00'
-            b'\x01\x00\x80\x00\x00\x00\x00\x00'
-            b'\xFF\xFF\xFF\x21\xF9\x04\x00\x00'
-            b'\x00\x00\x00\x2C\x00\x00\x00\x00'
-            b'\x02\x00\x01\x00\x00\x02\x02\x0C'
-            b'\x0A\x00\x3B'
-        )
-        cls.uploaded = SimpleUploadedFile(
-            name='test.gif',
-            content=cls.small_gif,
-            content_type='image/gif',
-        )
         post = (
             Post(
                 author=cls.anon,
                 group=cls.group,
                 text=f'Текст поста {post_number+1}',
-                image=cls.uploaded,
+                image=image(),
             )
             for post_number in range(15)
         )
@@ -90,6 +82,11 @@ class PostsPagesTests(TestCase):
             cls.group_list,
             cls.profile,
         ]
+
+    @classmethod
+    def tearDownClass(cls):
+        super().tearDownClass()
+        shutil.rmtree(MEDIATESTS, ignore_errors=True)
 
     def test_pages_uses_correct_templates(self):
         """URL-адреса используют корректные шаблоны."""
@@ -190,27 +187,6 @@ class PostsPagesTests(TestCase):
                 form_field = response.context.get('form').fields.get(value)
                 self.assertIsInstance(form_field, expected)
 
-    def test_comment_added_in_post_detail(self):
-        """Новый комментарий появился под постом"""
-        form = {
-            'text': 'Комментарий',
-        }
-        self.auth.post(
-            reverse('posts:add_comment', kwargs={'id': self.post.id}),
-            form,
-            follow=True,
-        )
-        comment = self.auth.get(
-            reverse(
-                'posts:post_detail',
-                kwargs={'id': self.post.id},
-            )
-        )
-        self.assertEqual(
-            comment.context['comments'][0].text,
-            form['text'],
-        )
-
     def test_index_cached(self):
         """Главная страница кэшируется"""
         response = self.auth.get(reverse('posts:index'))
@@ -228,21 +204,19 @@ class PostsPagesTests(TestCase):
 
     def test_auth_follow_and_unfollow(self):
         self.auth2.get(
-            reverse(
-                'posts:profile_follow', kwargs={'username': self.anon.username}
-            )
+            reverse('posts:profile_follow', args={self.anon.username}),
         )
         self.assertTrue(
-            Follow.objects.filter(author=self.anon, user=self.anon2).exists()
+            Follow.objects.filter(author=self.anon, user=self.anon2).exists(),
         )
         self.auth2.get(
             reverse(
                 'posts:profile_unfollow',
-                kwargs={'username': self.anon.username},
-            )
+                args={self.anon.username},
+            ),
         )
         self.assertFalse(
-            Follow.objects.filter(author=self.anon, user=self.anon2).exists()
+            Follow.objects.filter(author=self.anon, user=self.anon2).exists(),
         )
 
     def test_post_show_for_follower_and_not_show_for_unfollower(self):

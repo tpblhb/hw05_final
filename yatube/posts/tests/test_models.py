@@ -31,12 +31,14 @@ class PostModelTest(TestCase):
         for value, expected in field_verboses.items():
             with self.subTest(value=value):
                 self.assertEqual(
-                    post._meta.get_field(value).verbose_name, expected
+                    post._meta.get_field(value).verbose_name,
+                    expected,
                 )
         for value, expected in field_help_texts.items():
             with self.subTest(value=value):
                 self.assertEqual(
-                    post._meta.get_field(value).help_text, expected
+                    post._meta.get_field(value).help_text,
+                    expected,
                 )
         self.assertEqual(str(post), post.text[:MAX_TEXT_LENGTH])
 
@@ -45,7 +47,7 @@ class PostModelTest(TestCase):
         group = self.group
         self.assertEqual(
             str(group),
-            group.title[:MAX_TITLE_LENGTH] + '...'
+            group.title[:MAX_TITLE_LENGTH] + '…'
             if len(group.title) > MAX_TITLE_LENGTH
             else group.title,
         )

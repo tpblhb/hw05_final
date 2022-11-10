@@ -1,11 +1,16 @@
-from django.core.files.uploadedfile import SimpleUploadedFile
-from django.test import Client, TestCase
+import shutil
+
+from django.test import Client, TestCase, override_settings
 from django.urls import reverse
 from mixer.backend.django import mixer
 
 from posts.models import Group, Post, User
+from yatube.settings import MEDIATESTS
+
+from .common import image
 
 
+@override_settings(MEDIA_ROOT=MEDIATESTS)
 class PostFormTests(TestCase):
     @classmethod
     def setUpClass(cls):
@@ -15,20 +20,10 @@ class PostFormTests(TestCase):
         cls.auth = Client()
         cls.auth.force_login(cls.user)
 
-    def setUp(self):
-        self.small_gif = (
-            b'\x47\x49\x46\x38\x39\x61\x02\x00'
-            b'\x01\x00\x80\x00\x00\x00\x00\x00'
-            b'\xFF\xFF\xFF\x21\xF9\x04\x00\x00'
-            b'\x00\x00\x00\x2C\x00\x00\x00\x00'
-            b'\x02\x00\x01\x00\x00\x02\x02\x0C'
-            b'\x0A\x00\x3B'
-        )
-        self.uploaded = SimpleUploadedFile(
-            name='test.gif',
-            content=self.small_gif,
-            content_type='image/gif',
-        )
+    @classmethod
+    def tearDownClass(cls):
+        super().tearDownClass()
+        shutil.rmtree(MEDIATESTS, ignore_errors=True)
 
     def test_post_create_form(self):
         """Создание нового Post."""
@@ -38,7 +33,7 @@ class PostFormTests(TestCase):
             {
                 'text': 'Тестовый пост',
                 'group': self.group.id,
-                'image': self.uploaded,
+                'image': image(),
             },
             follow=True,
         )
@@ -47,12 +42,10 @@ class PostFormTests(TestCase):
             reverse('posts:profile', args=(self.user.username,)),
         )
         self.assertEqual(Post.objects.count(), 1)
+        self.assertTrue(Post.objects.filter(text='Тестовый пост').exists())
+        self.assertTrue(Post.objects.filter(group=self.group.id).exists())
         self.assertTrue(
-            Post.objects.filter(
-                text='Тестовый пост',
-                group=self.group.id,
-                image__contains='posts/test.gif',
-            ).exists()
+            Post.objects.filter(image__contains='test.gif').exists(),
         )
 
     def test_edit_post(self):

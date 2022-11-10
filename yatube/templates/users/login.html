@@ -24,7 +24,7 @@
                   aria-required="false"
                 {% endif %}
               >
-                {% include 'includes/form/field.html' %}
+                {% include "includes/form/field.html" %}
                 <div>
                   {{ field|addclass:"form-control" }}
                   {% if field.help_text %}
@@ -39,7 +39,7 @@
               <button type="submit" class="btn btn-primary">
                 Войти
               </button>
-              <a href="{% url 'users:password_reset' %}" class="btn btn-link">
+              <a href="{% url "users:password_reset" %}" class="btn btn-link">
                 Забыли пароль?
               </a>
             </div>
