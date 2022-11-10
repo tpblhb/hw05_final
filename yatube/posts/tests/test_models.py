@@ -1,3 +1,4 @@
+from core.utils import truncatechars
 from django.test import TestCase
 from mixer.backend.django import mixer
 
@@ -47,7 +48,5 @@ class PostModelTest(TestCase):
         group = self.group
         self.assertEqual(
             str(group),
-            group.title[:MAX_TITLE_LENGTH] + '...'
-            if len(group.title) > MAX_TITLE_LENGTH
-            else group.title,
+            truncatechars(group.title, MAX_TITLE_LENGTH),
         )
