@@ -47,7 +47,7 @@ class PostModelTest(TestCase):
         group = self.group
         self.assertEqual(
             str(group),
-            group.title[:MAX_TITLE_LENGTH] + '…'
+            group.title[:MAX_TITLE_LENGTH] + '...'
             if len(group.title) > MAX_TITLE_LENGTH
             else group.title,
         )
