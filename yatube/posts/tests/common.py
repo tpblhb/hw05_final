@@ -6,7 +6,7 @@ from PIL import Image
 
 def image(name: str = 'test.gif') -> SimpleUploadedFile:
     uploaded = BytesIO()
-    image = Image.new('RGBA', size=(1, 1), color=(155, 0, 0)).save(
+    Image.new('RGBA', size=(1, 1), color=(155, 0, 0)).save(
         uploaded,
         'gif',
     )
