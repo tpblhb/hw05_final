@@ -1,7 +1,7 @@
 from django.contrib.auth import get_user_model
 from django.db import models
 
-from core.models import author, pub_date, text
+from core.models import TextParams
 from core.utils import truncatechars
 
 User = get_user_model()
@@ -27,10 +27,7 @@ class Group(models.Model):
         return truncatechars(self.title, MAX_TITLE_LENGTH)
 
 
-class Post(models.Model):
-    text = text()
-    pub_date = pub_date()
-    author = author()
+class Post(TextParams):
     group = models.ForeignKey(
         Group,
         on_delete=models.SET_NULL,
@@ -55,7 +52,7 @@ class Post(models.Model):
         return truncatechars(self.text, MAX_TEXT_LENGTH)
 
 
-class Comment(models.Model):
+class Comment(TextParams):
     post = models.ForeignKey(
         Post,
         on_delete=models.CASCADE,
@@ -63,15 +60,13 @@ class Comment(models.Model):
         blank=True,
         help_text='комментарий к посту',
     )
-    author = author()
-    text = text()
-    created = pub_date()
 
     def __str__(self) -> str:
         return f'{self.text[:MAX_TEXT_LENGTH]}, author:{self.author}'
 
     class Meta:
-        ordering = ('-created',)
+        verbose_name = 'комментарий'
+        ordering = ('-pub_date',)
 
 
 class Follow(models.Model):

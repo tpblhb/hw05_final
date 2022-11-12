@@ -117,3 +117,5 @@ CACHES = {
 }
 
 MEDIATESTS = os.path.join(BASE_DIR, 'mediatests')
+
+MAX_DEFAULT_LENGTH = 15

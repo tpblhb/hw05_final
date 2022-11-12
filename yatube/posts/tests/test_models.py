@@ -1,7 +1,8 @@
-from core.utils import truncatechars
 from django.test import TestCase
 from mixer.backend.django import mixer
+from strenum import StrEnum
 
+from core.utils import truncatechars
 from posts.models import MAX_TEXT_LENGTH, MAX_TITLE_LENGTH, Group, Post, User
 
 
@@ -10,7 +11,6 @@ class PostModelTest(TestCase):
     def setUpClass(cls):
         super().setUpClass()
         cls.user = User.objects.create_user(username='auth')
-        cls.group = mixer.blend(Group)
         cls.post = Post.objects.create(
             author=cls.user,
             text='Тестовый пост',
@@ -18,35 +18,59 @@ class PostModelTest(TestCase):
 
     def test_post_model_have_correct_str(self):
         """Проверяем, что у модели Post корректно работает __str__."""
-        post = self.post
-        field_verboses = {
-            'text': 'текст',
-            'pub_date': 'дата публикации',
-            'author': 'автор',
-            'group': 'группа',
+        self.assertEqual(
+            str(self.post),
+            truncatechars(self.post.text, MAX_TEXT_LENGTH),
+        )
+
+    def test_post_model_have_correct_verboses(self):
+        """Проверяем, что у модели Post корректно работают verbose_name."""
+
+        class Fields(StrEnum):
+            text = 'text'
+            author = 'author'
+            group = 'group'
+
+        verboses = {
+            Fields.text: 'текст',
+            Fields.author: 'автор',
+            Fields.group: 'группа',
         }
-        field_help_texts = {
-            'text': 'введите текст поста',
-            'group': 'выберите группу',
-        }
-        for value, expected in field_verboses.items():
+        for value, expected in verboses.items():
             with self.subTest(value=value):
                 self.assertEqual(
-                    post._meta.get_field(value).verbose_name,
+                    self.post._meta.get_field(value).verbose_name,
                     expected,
                 )
-        for value, expected in field_help_texts.items():
+
+    def test_post_model_have_correct_help_text(self):
+        """Проверяем, что у модели Post корректно работают help_text."""
+
+        class Fields(StrEnum):
+            text = 'text'
+            group = 'group'
+
+        helptexts = {
+            Fields.text: 'введите текст поста',
+            Fields.group: 'выберите группу',
+        }
+        for value, expected in helptexts.items():
             with self.subTest(value=value):
                 self.assertEqual(
-                    post._meta.get_field(value).help_text,
+                    self.post._meta.get_field(value).help_text,
                     expected,
                 )
-        self.assertEqual(str(post), post.text[:MAX_TEXT_LENGTH])
+
+
+class GroupModelTest(TestCase):
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.group = mixer.blend(Group)
 
     def test_group_model_have_correct_str(self):
         """Проверяем, что у модели Group корректно работает __str__."""
-        group = self.group
         self.assertEqual(
-            str(group),
-            truncatechars(group.title, MAX_TITLE_LENGTH),
+            str(self.group),
+            truncatechars(self.group.title, MAX_TITLE_LENGTH),
         )

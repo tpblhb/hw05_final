@@ -6,11 +6,13 @@ from PIL import Image
 
 def image(name: str = 'test.gif') -> SimpleUploadedFile:
     uploaded = BytesIO()
-    image = Image.new('RGBA', size=(50, 50), color=(155, 0, 0))
-    image.save(uploaded, 'gif')
+    image = Image.new('RGBA', size=(1, 1), color=(155, 0, 0)).save(
+        uploaded,
+        'gif',
+    )
     uploaded.seek(0)
     return SimpleUploadedFile(
-        name='test.gif',
+        name=name,
         content=uploaded.read(),
         content_type='image/gif',
     )

@@ -1,18 +1,17 @@
 import shutil
 
 from django import forms
+from django.conf import settings
 from django.core.cache import cache
 from django.test import Client, TestCase, override_settings
 from django.urls import reverse
 from mixer.backend.django import mixer
 
 from posts.models import Follow, Group, Post, User
-from yatube.settings import MEDIATESTS
-
-from .common import image
+from posts.tests.common import image
 
 
-@override_settings(MEDIA_ROOT=MEDIATESTS)
+@override_settings(MEDIA_ROOT=settings.MEDIATESTS)
 class PostsPagesTests(TestCase):
     @classmethod
     def setUpClass(cls):
@@ -39,63 +38,77 @@ class PostsPagesTests(TestCase):
         )
         Post.objects.bulk_create(post)
         cls.post = Post.objects.first()
-        cls.index = (
-            'posts:index',
-            'posts/index.html',
-            None,
-        )
-        cls.group_list = (
-            'posts:group_list',
-            'posts/group_list.html',
-            {'slug': cls.group.slug},
-        )
-        cls.profile = (
-            'posts:profile',
-            'posts/profile.html',
-            {'username': cls.anon},
-        )
-        cls.post_detail = (
-            'posts:post_detail',
-            'posts/post_detail.html',
-            {'id': cls.post.id},
-        )
-        cls.post_create = (
-            'posts:post_create',
-            'posts/create_post.html',
-            None,
-        )
-        cls.post_edit = (
-            'posts:post_edit',
-            'posts/create_post.html',
-            {'id': cls.post.id},
-        )
-        cls.all_pages = [
-            cls.index,
-            cls.group_list,
-            cls.post_detail,
-            cls.profile,
-            cls.post_create,
-            cls.post_edit,
-        ]
-        cls.paginated = [
-            cls.index,
-            cls.group_list,
-            cls.profile,
-        ]
+        cls.all_pages = {
+            '/': reverse('posts:index'),
+            'create/': reverse('posts:post_create'),
+            f'/group/{cls.post.group.slug}/': reverse(
+                'posts:group_list',
+                args=(cls.post.group.slug,),
+            ),
+            f'/posts/{cls.post.id}/': reverse(
+                'posts:post_detail',
+                args=(cls.post.id,),
+            ),
+            f'/posts/{cls.post.id}/edit/': reverse(
+                'posts:post_edit',
+                args=(cls.post.id,),
+            ),
+            f'/profile/{cls.anon.username}/': reverse(
+                'posts:profile',
+                args=(cls.anon.username,),
+            ),
+        }
+        cls.paginated = {
+            '/': reverse('posts:index'),
+            f'/group/{cls.post.group.slug}/': reverse(
+                'posts:group_list',
+                args=(cls.post.group.slug,),
+            ),
+            f'/profile/{cls.anon.username}/': reverse(
+                'posts:profile',
+                args=(cls.anon.username,),
+            ),
+        }
 
     @classmethod
     def tearDownClass(cls):
         super().tearDownClass()
-        shutil.rmtree(MEDIATESTS, ignore_errors=True)
+        shutil.rmtree(settings.MEDIATESTS, ignore_errors=True)
 
     def test_pages_uses_correct_templates(self):
         """URL-адреса используют корректные шаблоны."""
-        for address, template, kwargs in self.all_pages:
-            with self.subTest(reverse_name=address):
-                response = self.auth.get(
-                    reverse(address, kwargs=kwargs),
-                )
-                self.assertTemplateUsed(response, template)
+        templates = (
+            (self.all_pages.get('/'), 'posts/index.html', self.auth),
+            (
+                self.all_pages.get('create/'),
+                'posts/create_post.html',
+                self.auth,
+            ),
+            (
+                self.all_pages.get(f'/group/{self.post.group.slug}/'),
+                'posts/group_list.html',
+                self.auth,
+            ),
+            (
+                self.all_pages.get(f'/posts/{self.post.id}/'),
+                'posts/post_detail.html',
+                self.auth,
+            ),
+            (
+                self.all_pages.get(f'/posts/{self.post.id}/edit/'),
+                'posts/create_post.html',
+                self.auth,
+            ),
+            (
+                self.all_pages.get(f'/profile/{self.anon.username}/'),
+                'posts/profile.html',
+                self.auth,
+            ),
+        )
+
+        for adress, template, client in templates:
+            with self.subTest(adress=adress):
+                self.assertTemplateUsed(client.get(adress), template)
 
     def test_index_page_uses_correct_context(self):
         """Шаблон index сформирован с правильным контекстом."""
@@ -129,14 +142,32 @@ class PostsPagesTests(TestCase):
 
     def test_group_list_index_profile_paginator_work(self):
         """Пагинатор работает в group_list, index и profile."""
-        for name, params, kwargs in self.paginated:
-            with self.subTest(name=name, params=params):
+        templates = (
+            (
+                'posts:group_list',
+                'posts/group_list.html',
+                {'slug': self.group.slug},
+            ),
+            (
+                'posts:index',
+                'posts/index.html',
+                None,
+            ),
+            (
+                'posts:profile',
+                'posts/profile.html',
+                {'username': self.anon},
+            ),
+        )
+
+        for adress, params, kwargs in templates:
+            with self.subTest(adress=adress, params=params):
                 response = self.auth.get(
-                    reverse(name, kwargs=kwargs),
+                    reverse(adress, kwargs=kwargs),
                 )
                 self.assertEqual(len(response.context['page_obj']), 10)
                 response = self.auth.get(
-                    reverse(name, kwargs=kwargs) + '?page=2',
+                    reverse(adress, kwargs=kwargs) + '?page=2',
                 )
                 self.assertEqual(len(response.context['page_obj']), 5)
 
