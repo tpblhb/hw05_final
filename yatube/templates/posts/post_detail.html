@@ -4,7 +4,7 @@
 {% block title %}Пост {{ post.text|truncatewords:30 }}{% endblock title %}
 {% block content %}
   <div class="container py-5">
-    <h3>Дата публикации: {{ post.pub_date|date:"d E Y" }}</h3>
+    <h3>Дата публикации: {{ post.created|date:"d E Y" }}</h3>
     <aside class="col-12 col-md-5">
       {% if post.group %}
         <ul class="list-group list-group-flush">

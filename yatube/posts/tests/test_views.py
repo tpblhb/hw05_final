@@ -16,106 +16,61 @@ class PostsPagesTests(TestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        cls.anon = User.objects.create_user(username='Test User')
-        cls.anon2 = User.objects.create_user(username='Test User2')
-        cls.anon3 = User.objects.create_user(username='Test User3')
-        cls.auth = Client()
-        cls.auth.force_login(cls.anon)
-        cls.auth2 = Client()
-        cls.auth2.force_login(cls.anon2)
-        cls.auth3 = Client()
-        cls.auth3.force_login(cls.anon3)
-        Follow.objects.create(user=cls.anon, author=cls.anon3)
+        cls.author = mixer.blend(User)
+        cls.anon = mixer.blend(User)
+        Follow.objects.create(user=cls.author, author=cls.anon)
         cls.group = mixer.blend(Group)
-        post = (
-            Post(
-                author=cls.anon,
-                group=cls.group,
-                text=f'Текст поста {post_number+1}',
-                image=image(),
-            )
-            for post_number in range(15)
+        cls.post = Post.objects.create(
+            author=cls.author,
+            group=cls.group,
+            text='Текст поста',
+            image=image(),
         )
-        Post.objects.bulk_create(post)
-        cls.post = Post.objects.first()
-        cls.all_pages = {
-            '/': reverse('posts:index'),
-            'create/': reverse('posts:post_create'),
-            f'/group/{cls.post.group.slug}/': reverse(
+
+        cls.auth = Client()
+        cls.auth2 = Client()
+
+        cls.auth.force_login(cls.author)
+        cls.auth2.force_login(cls.anon)
+
+        cls.paginated = (
+            reverse(
                 'posts:group_list',
-                args=(cls.post.group.slug,),
+                kwargs={'slug': cls.group.slug},
             ),
-            f'/posts/{cls.post.id}/': reverse(
-                'posts:post_detail',
-                args=(cls.post.id,),
+            reverse(
+                'posts:index',
+                kwargs=None,
             ),
-            f'/posts/{cls.post.id}/edit/': reverse(
-                'posts:post_edit',
-                args=(cls.post.id,),
-            ),
-            f'/profile/{cls.anon.username}/': reverse(
+            reverse(
                 'posts:profile',
-                args=(cls.anon.username,),
+                kwargs={'username': cls.author},
             ),
-        }
-        cls.paginated = {
-            '/': reverse('posts:index'),
-            f'/group/{cls.post.group.slug}/': reverse(
-                'posts:group_list',
-                args=(cls.post.group.slug,),
-            ),
-            f'/profile/{cls.anon.username}/': reverse(
-                'posts:profile',
-                args=(cls.anon.username,),
-            ),
-        }
+        )
 
     @classmethod
     def tearDownClass(cls):
         super().tearDownClass()
         shutil.rmtree(settings.MEDIATESTS, ignore_errors=True)
 
-    def test_pages_uses_correct_templates(self):
-        """URL-адреса используют корректные шаблоны."""
-        templates = (
-            (self.all_pages.get('/'), 'posts/index.html', self.auth),
-            (
-                self.all_pages.get('create/'),
-                'posts/create_post.html',
-                self.auth,
-            ),
-            (
-                self.all_pages.get(f'/group/{self.post.group.slug}/'),
-                'posts/group_list.html',
-                self.auth,
-            ),
-            (
-                self.all_pages.get(f'/posts/{self.post.id}/'),
-                'posts/post_detail.html',
-                self.auth,
-            ),
-            (
-                self.all_pages.get(f'/posts/{self.post.id}/edit/'),
-                'posts/create_post.html',
-                self.auth,
-            ),
-            (
-                self.all_pages.get(f'/profile/{self.anon.username}/'),
-                'posts/profile.html',
-                self.auth,
-            ),
-        )
-
-        for adress, template, client in templates:
-            with self.subTest(adress=adress):
-                self.assertTemplateUsed(client.get(adress), template)
-
     def test_index_page_uses_correct_context(self):
         """Шаблон index сформирован с правильным контекстом."""
         response = self.auth.get(reverse('posts:index'))
         self.assertEqual(
-            response.context['page_obj'][0],
-            self.post,
+            response.context['page_obj'][0].author,
+            self.post.author,
+        )
+        self.assertEqual(
+            response.context['page_obj'][0].group,
+            self.post.group,
+        )
+        self.assertEqual(
+            response.context['page_obj'][0].text,
+            self.post.text,
+        )
+        self.assertEqual(
+            response.context['page_obj'][0].image,
+            self.post.image,
         )
 
     def test_group_list_uses_correct_context(self):
@@ -132,44 +87,33 @@ class PostsPagesTests(TestCase):
     def test_profile_uses_correct_context(self):
         """Шаблон profile сформирован с правильным контекстом."""
         response = self.auth.get(
-            reverse('posts:profile', args={self.anon}),
+            reverse('posts:profile', args={self.author}),
         )
-        self.assertEqual(response.context['author'], self.anon)
+        self.assertEqual(response.context['author'], self.author)
         self.assertEqual(
             response.context['page_obj'][0],
-            self.anon.posts.first(),
+            self.author.posts.first(),
         )
 
     def test_group_list_index_profile_paginator_work(self):
         """Пагинатор работает в group_list, index и profile."""
-        templates = (
-            (
-                'posts:group_list',
-                'posts/group_list.html',
-                {'slug': self.group.slug},
-            ),
-            (
-                'posts:index',
-                'posts/index.html',
-                None,
-            ),
-            (
-                'posts:profile',
-                'posts/profile.html',
-                {'username': self.anon},
-            ),
+        post = (
+            Post(
+                author=self.author,
+                group=self.group,
+                text=f'Текст поста {post_number+1}',
+                image=image(),
+            )
+            for post_number in range(15)
         )
+        Post.objects.bulk_create(post)
 
-        for adress, params, kwargs in templates:
-            with self.subTest(adress=adress, params=params):
-                response = self.auth.get(
-                    reverse(adress, kwargs=kwargs),
-                )
+        for adress in self.paginated:
+            with self.subTest(adress=adress):
+                response = self.auth.get(adress)
                 self.assertEqual(len(response.context['page_obj']), 10)
-                response = self.auth.get(
-                    reverse(adress, kwargs=kwargs) + '?page=2',
-                )
-                self.assertEqual(len(response.context['page_obj']), 5)
+                response = self.auth.get(adress + '?page=2')
+                self.assertEqual(len(response.context['page_obj']), 6)
 
     def test_post_detail_uses_correct_context(self):
         """Шаблон post_detail сформирован с правильным контекстом."""
@@ -223,7 +167,7 @@ class PostsPagesTests(TestCase):
         response = self.auth.get(reverse('posts:index'))
         post = Post.objects.create(
             text='Проверяем кэширование страницы',
-            author=self.anon,
+            author=self.author,
         )
         cached = self.auth.get(reverse('posts:index'))
         post.delete()
@@ -235,25 +179,25 @@ class PostsPagesTests(TestCase):
 
     def test_auth_follow_and_unfollow(self):
         self.auth2.get(
-            reverse('posts:profile_follow', args={self.anon.username}),
+            reverse('posts:profile_follow', args={self.author.username}),
         )
         self.assertTrue(
-            Follow.objects.filter(author=self.anon, user=self.anon2).exists(),
+            Follow.objects.filter(author=self.author, user=self.anon).exists(),
         )
         self.auth2.get(
             reverse(
                 'posts:profile_unfollow',
-                args={self.anon.username},
+                args={self.author.username},
             ),
         )
         self.assertFalse(
-            Follow.objects.filter(author=self.anon, user=self.anon2).exists(),
+            Follow.objects.filter(author=self.author, user=self.anon).exists(),
         )
 
     def test_post_show_for_follower_and_not_show_for_unfollower(self):
         post = Post.objects.create(
             text='Тестовый пост',
-            author=self.anon3,
+            author=self.anon,
         )
         response = self.auth.get(reverse('posts:follow_index'))
         self.assertIn(post, response.context['page_obj'].object_list)

@@ -1,12 +1,11 @@
 from django.contrib.auth import get_user_model
 from django.db import models
 
-from core.models import TextParams
+from core.models import TextParams, TimestampedModel
 from core.utils import truncatechars
 
 User = get_user_model()
 
-MAX_TEXT_LENGTH = 15
 MAX_TITLE_LENGTH = 20
 
 
@@ -42,14 +41,13 @@ class Post(TextParams):
         blank=True,
     )
 
-    class Meta:
-        ordering = ('-pub_date',)
+    class Meta(TimestampedModel.Meta):
         default_related_name = 'posts'
         verbose_name = 'пост'
         verbose_name_plural = 'посты'
 
     def __str__(self) -> str:
-        return truncatechars(self.text, MAX_TEXT_LENGTH)
+        return truncatechars(self.text)
 
 
 class Comment(TextParams):
@@ -62,11 +60,11 @@ class Comment(TextParams):
     )
 
     def __str__(self) -> str:
-        return f'{self.text[:MAX_TEXT_LENGTH]}, author:{self.author}'
+        return f'{self.text}, author:{self.author}'
 
-    class Meta:
+    class Meta(TimestampedModel.Meta):
+        default_related_name = 'comments'
         verbose_name = 'комментарий'
-        ordering = ('-pub_date',)
 
 
 class Follow(models.Model):

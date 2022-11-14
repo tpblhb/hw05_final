@@ -16,6 +16,7 @@ ALLOWED_HOSTS = [
 INSTALLED_APPS = [
     'about.apps.AboutConfig',
     'core.apps.CoreConfig',
+    'behaviors.apps.BehaviorsConfig',
     'posts.apps.PostsConfig',
     'users.apps.UsersConfig',
     'django.contrib.admin',
@@ -110,12 +111,12 @@ MEDIA_URL = '/media/'
 
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
+MEDIATESTS = os.path.join(BASE_DIR, 'mediatests')
+
 CACHES = {
     'default': {
         'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
     },
 }
-
-MEDIATESTS = os.path.join(BASE_DIR, 'mediatests')
 
 MAX_DEFAULT_LENGTH = 15

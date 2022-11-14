@@ -15,8 +15,9 @@ class PostFormTests(TestCase):
     def setUpClass(cls):
         super().setUpClass()
         cls.group = mixer.blend(Group)
-        cls.user = User.objects.create_user(username='testname')
+        cls.user = mixer.blend(User)
 
+        cls.anon = Client()
         cls.auth = Client()
 
         cls.auth.force_login(cls.user)
@@ -26,7 +27,10 @@ class PostFormTests(TestCase):
         super().tearDownClass()
         shutil.rmtree(settings.MEDIATESTS, ignore_errors=True)
 
-    def test_post_create_form(self):
+    def tearDown(self):
+        shutil.rmtree(settings.MEDIATESTS, ignore_errors=True)
+
+    def test_post_create(self):
         """Создание нового Post."""
         response = self.auth.post(
             reverse('posts:post_create'),
@@ -43,50 +47,73 @@ class PostFormTests(TestCase):
         )
         self.assertEqual(Post.objects.count(), 1)
         post = Post.objects.get()
-        self.assertEqual(
-            (
-                post.text,
-                post.group.id,
-                post.image.name,
-            ),
-            (
-                'Тестовый пост',
-                self.group.id,
-                f'posts/{image().name}',
-            ),
-        )
+        self.assertEqual(post.text, 'Тестовый пост')
+        self.assertEqual(post.group, self.group)
+        self.assertTrue(post.image.name.endswith(image().name))
 
     def test_edit_post(self):
         """Валидная форма изменяет запись в Post."""
-        self.post = Post.objects.create(
+        post = Post.objects.create(
             author=self.user,
             text='Тестовый пост',
             group=self.group,
-            image=image('test2.gif'),
+            image=image(),
         )
+        self.assertEqual(Post.objects.count(), 1)
         response = self.auth.post(
             reverse(
                 'posts:post_edit',
-                args=(f'{self.post.pk}',),
+                args={post.pk},
             ),
             {
                 'text': 'Изменённый тестовый пост',
                 'group': self.group.id,
-                'image': image('test3.gif'),
+                'image': image('test2.gif'),
             },
         )
         self.assertRedirects(
             response,
-            f'/posts/{self.post.pk}/',
+            f'/posts/{post.pk}/',
         )
-        response_post_detail = Post.objects.get(id=self.post.id)
-        self.assertEqual(self.post.author, response_post_detail.author)
-        self.assertEqual(response_post_detail.image.name, 'posts/test3.gif')
-        self.assertEqual(response_post_detail.group.id, self.group.id)
-        self.assertEqual(self.post.pub_date, response_post_detail.pub_date)
-        self.assertEqual(response_post_detail.text, 'Изменённый тестовый пост')
-        self.assertRedirects(
-            response,
-            reverse('posts:post_detail', args={self.post.id}),
+        self.assertEqual(post.author, Post.objects.get(id=post.id).author)
+        self.assertTrue(
+            Post.objects.get(id=post.id).image.name.endswith(
+                image('test2.gif').name,
+            ),
+        )
+        self.assertEqual(Post.objects.get(id=post.id).group, self.group)
+        self.assertEqual(
+            Post.objects.get(id=post.id).text,
+            'Изменённый тестовый пост',
+        )
+
+    def test_create_post_guest(self):
+        self.anon.post(
+            reverse('posts:post_create'),
+            data={
+                'text': 'Тестовый пост',
+                'group': self.group.id,
+                'image': image(),
+            },
+            follow=True,
+        )
+        self.assertEqual(Post.objects.count(), 0)
+
+    def test_edit_post_not_author(self):
+        post = Post.objects.create(
+            author=self.user,
+            text='Тестовый пост',
+            group=self.group,
+            image=image(),
         )
         self.assertEqual(Post.objects.count(), 1)
+        self.anon.post(
+            reverse(
+                'posts:post_edit',
+                args={post.pk},
+            ),
+            {
+                'text': 'Изменённый тестовый пост',
+            },
+        )
+        self.assertEqual(Post.objects.get(id=post.id).text, 'Тестовый пост')

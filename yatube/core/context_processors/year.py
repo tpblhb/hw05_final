@@ -1,9 +1,9 @@
-from datetime import datetime
+from datetime import date
 
 from django.http import HttpRequest, HttpResponse
 
 
 def year(request: HttpRequest) -> HttpResponse:
     return {
-        'year': datetime.now().strftime('%Y'),
+        'year': date.today().year,
     }

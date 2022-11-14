@@ -16,76 +16,76 @@ class PostsURLTests(TestCase):
         cls.user = User.objects.create_user(username='user')
         cls.authorized_author = Client()
         cls.authorized_author.force_login(cls.author)
-        cls.anon = Client()
         cls.auth = Client()
         cls.auth.force_login(cls.user)
 
+        cls.group = mixer.blend(Group)
         cls.post = Post.objects.create(
             text='Тестовый пост',
             author=cls.author,
-            group=mixer.blend(Group),
+            group=cls.group,
         )
 
         cls.urls = {
-            f'/group/{cls.post.group.slug}/': reverse(
+            'group_list': reverse(
                 'posts:group_list',
-                args=(cls.post.group.slug,),
+                args=(cls.group.slug,),
             ),
-            '/': reverse('posts:index'),
-            f'/profile/{cls.author.username}/': reverse(
+            'index': reverse('posts:index'),
+            'profile': reverse(
                 'posts:profile',
                 args=(cls.author.username,),
             ),
-            f'/posts/{cls.post.id}/': reverse(
+            'post_detail': reverse(
                 'posts:post_detail',
                 args=(cls.post.id,),
             ),
-            f'/posts/{cls.post.id}/edit/': reverse(
+            'post_edit': reverse(
                 'posts:post_edit',
                 args=(cls.post.id,),
             ),
-            'create/': reverse('posts:post_create'),
-            'follow/': reverse('posts:follow_index'),
+            'post_create': reverse('posts:post_create'),
+            'follow_index': reverse('posts:follow_index'),
             '/missing/': '/missing/',
         }
 
     def test_http_statuses(self) -> None:
         httpstatuses = (
-            (self.urls.get('/'), HTTPStatus.OK, self.anon),
-            (self.urls.get('create/'), HTTPStatus.FOUND, self.anon),
-            (self.urls.get('create/'), HTTPStatus.OK, self.auth),
-            (self.urls.get('follow/'), HTTPStatus.FOUND, self.anon),
-            (self.urls.get('follow/'), HTTPStatus.OK, self.auth),
+            (self.urls.get('index'), HTTPStatus.OK, Client()),
+            (self.urls.get('post_create'), HTTPStatus.FOUND, Client()),
+            (self.urls.get('post_create'), HTTPStatus.OK, self.auth),
+            (self.urls.get('follow_index'), HTTPStatus.FOUND, Client()),
+            (self.urls.get('follow_index'), HTTPStatus.OK, self.auth),
             (
-                self.urls.get(f'/group/{self.post.group.slug}/'),
+                self.urls.get('group_list'),
                 HTTPStatus.OK,
-                self.anon,
+                Client(),
             ),
-            (self.urls.get('/missing/'), HTTPStatus.NOT_FOUND, self.anon),
+            (self.urls.get('/missing/'), HTTPStatus.NOT_FOUND, Client()),
             (
-                self.urls.get(f'/posts/{self.post.id}/'),
+                self.urls.get('post_detail'),
                 HTTPStatus.OK,
-                self.anon,
+                Client(),
             ),
             (
-                self.urls.get(f'/posts/{self.post.id}/edit/'),
+                self.urls.get('post_edit'),
                 HTTPStatus.OK,
                 self.authorized_author,
             ),
             (
-                self.urls.get(f'/posts/{self.post.id}/edit/'),
+                self.urls.get('post_edit'),
                 HTTPStatus.FOUND,
-                self.anon,
+                Client(),
             ),
             (
-                self.urls.get(f'/posts/{self.post.id}/edit/'),
+                self.urls.get('post_edit'),
                 HTTPStatus.FOUND,
                 self.auth,
             ),
             (
-                self.urls.get(f'/profile/{self.author.username}/'),
+                self.urls.get('profile'),
                 HTTPStatus.OK,
-                self.anon,
+                Client(),
             ),
         )
 
@@ -93,35 +93,41 @@ class PostsURLTests(TestCase):
             with self.subTest(adress=adress):
                 self.assertEqual(client.get(adress).status_code, status)
                 self.assertEqual(
-                    client.get(f'/auth/login/?next={adress}').status_code,
+                    client.get(
+                        redirect_to_login(self.urls.get(adress)).url,
+                    ).status_code,
                     HTTPStatus.OK,
                 )
 
     def test_templates(self) -> None:
         """URL-адрес использует соответствующий шаблон."""
         templates = (
-            (self.urls.get('/'), 'posts/index.html', self.anon),
-            (self.urls.get('create/'), 'posts/create_post.html', self.auth),
-            (self.urls.get('follow/'), 'posts/follow.html', self.auth),
+            (self.urls.get('index'), 'posts/index.html', Client()),
             (
-                self.urls.get(f'/posts/{self.post.id}/'),
+                self.urls.get('post_create'),
+                'posts/create_post.html',
+                self.auth,
+            ),
+            (self.urls.get('follow_index'), 'posts/follow.html', self.auth),
+            (
+                self.urls.get('post_detail'),
                 'posts/post_detail.html',
-                self.anon,
+                Client(),
             ),
             (
-                self.urls.get(f'/posts/{self.post.id}/edit/'),
+                self.urls.get('post_edit'),
                 'posts/create_post.html',
                 self.authorized_author,
             ),
             (
-                self.urls.get(f'/group/{self.post.group.slug}/'),
+                self.urls.get('group_list'),
                 'posts/group_list.html',
-                self.anon,
+                Client(),
             ),
             (
-                self.urls.get(f'/profile/{self.author.username}/'),
+                self.urls.get('profile'),
                 'posts/profile.html',
-                self.anon,
+                Client(),
             ),
         )
 
@@ -132,20 +138,20 @@ class PostsURLTests(TestCase):
     def test_redirects(self) -> None:
         redirects = (
             (
-                self.urls.get('create/'),
-                redirect_to_login(self.urls.get('create/')).url,
-                self.anon,
+                self.urls.get('post_create'),
+                redirect_to_login(self.urls.get('post_create')).url,
+                Client(),
             ),
             (
-                self.urls.get(f'/posts/{self.post.id}/edit/'),
+                self.urls.get('post_edit'),
                 redirect_to_login(
-                    self.urls.get(f'/posts/{self.post.id}/edit/'),
+                    self.urls.get('post_edit'),
                 ).url,
-                self.anon,
+                Client(),
             ),
             (
-                self.urls.get(f'/posts/{self.post.id}/edit/'),
-                f'/posts/{self.post.id}/',
+                self.urls.get('post_edit'),
+                self.urls.get('post_detail'),
                 self.auth,
             ),
         )
