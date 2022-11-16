@@ -111,7 +111,7 @@ class PostFormTests(TestCase):
             follow=True,
         )
         self.assertTrue(
-            Comment.objects.filter(text='Тестовый комментарий').exists()
+            Comment.objects.filter(text='Тестовый комментарий').exists(),
         )
 
     def test_anon_comment(self):
@@ -125,5 +125,5 @@ class PostFormTests(TestCase):
             follow=True,
         )
         self.assertFalse(
-            Comment.objects.filter(text='Тестовый комментарий').exists()
+            Comment.objects.filter(text='Тестовый комментарий').exists(),
         )
