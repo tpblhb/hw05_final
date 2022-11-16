@@ -95,7 +95,6 @@ class PostsURLTests(TestCase):
                 self.assertEqual(client.get(adress).status_code, status)
 
     def test_templates(self) -> None:
-        """URL-адрес использует соответствующий шаблон."""
         templates = (
             (self.urls.get('follow_index'), 'posts/follow.html', self.auth),
             (
@@ -157,5 +156,5 @@ class PostsURLTests(TestCase):
         )
 
         for adress, redirect, client in redirects:
-            with self.subTest(adress=adress):
+            with self.subTest(adress=adress, redirect=redirect, client=client):
                 self.assertRedirects(client.get(adress), redirect)
