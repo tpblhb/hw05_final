@@ -29,7 +29,7 @@ def server_error(request: HttpRequest) -> HttpResponse:
 
 
 def permission_denied(
-    request: HttpRequest, exception: Exception
+    request: HttpRequest, exception: Exception,
 ) -> HttpResponse:
     del exception
     return render(request, 'core/403.html', status=HTTPStatus.FORBIDDEN)

@@ -75,7 +75,7 @@ class PostFormTests(TestCase):
                 group=self.group,
                 author=post.author,
                 image='posts/test2.gif',
-            ).exists()
+            ).exists(),
         )
 
     def test_create_post_guest(self):
