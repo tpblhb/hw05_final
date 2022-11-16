@@ -6,7 +6,7 @@ from django.http import HttpRequest, HttpResponse
 def paginate(
     request: HttpRequest,
     queryset: str,
-    quantity: int = settings.POSTS_ON_PAGE,
+    quantity: int = settings.PAGE_SIZE,
 ) -> HttpResponse:
     return Paginator(queryset, quantity).get_page(request.GET.get('page'))
 

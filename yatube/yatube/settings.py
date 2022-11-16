@@ -16,9 +16,9 @@ ALLOWED_HOSTS = [
 INSTALLED_APPS = [
     'about.apps.AboutConfig',
     'core.apps.CoreConfig',
-    'behaviors.apps.BehaviorsConfig',
     'posts.apps.PostsConfig',
     'users.apps.UsersConfig',
+    'behaviors.apps.BehaviorsConfig',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -95,7 +95,7 @@ STATIC_URL = '/static/'
 
 STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]
 
-POSTS_ON_PAGE = 10
+PAGE_SIZE = 10
 
 LOGIN_URL = 'users:login'
 

@@ -149,7 +149,7 @@ def profile_follow(request: HttpRequest, username: str) -> HttpResponse:
 
 
 @login_required
-def profile_unfollow(request: HttpRequest, username: str):
+def profile_unfollow(request: HttpRequest, username: str) -> HttpResponse:
     get_object_or_404(
         request.user.follower,
         author__username=username,

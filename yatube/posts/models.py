@@ -1,12 +1,10 @@
 from django.contrib.auth import get_user_model
 from django.db import models
 
-from core.models import TextParams, TimestampedModel
+from core.models import TextAuthor, TimestampedModel
 from core.utils import truncatechars
 
 User = get_user_model()
-
-MAX_TITLE_LENGTH = 20
 
 
 class Group(models.Model):
@@ -23,10 +21,10 @@ class Group(models.Model):
     )
 
     def __str__(self) -> str:
-        return truncatechars(self.title, MAX_TITLE_LENGTH)
+        return truncatechars(self.title)
 
 
-class Post(TextParams):
+class Post(TextAuthor):
     group = models.ForeignKey(
         Group,
         on_delete=models.SET_NULL,
@@ -50,17 +48,16 @@ class Post(TextParams):
         return truncatechars(self.text)
 
 
-class Comment(TextParams):
+class Comment(TextAuthor):
     post = models.ForeignKey(
         Post,
         on_delete=models.CASCADE,
-        related_name='comments',
         blank=True,
         help_text='комментарий к посту',
     )
 
     def __str__(self) -> str:
-        return f'{self.text}, author:{self.author}'
+        return f'{self.text}, автор: {self.author}'
 
     class Meta(TimestampedModel.Meta):
         default_related_name = 'comments'

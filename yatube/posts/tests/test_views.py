@@ -36,15 +36,15 @@ class PostsPagesTests(TestCase):
         cls.paginated = (
             reverse(
                 'posts:group_list',
-                kwargs={'slug': cls.group.slug},
+                args={cls.group.slug},
             ),
             reverse(
                 'posts:index',
-                kwargs=None,
+                args=None,
             ),
             reverse(
                 'posts:profile',
-                kwargs={'username': cls.author},
+                args={cls.author},
             ),
         )
 

@@ -3,67 +3,51 @@ from mixer.backend.django import mixer
 from strenum import StrEnum
 
 from core.utils import truncatechars
-from posts.models import MAX_TITLE_LENGTH, Group, Post, User
-
-
-class Fields(StrEnum):
-    text = 'text'
-    author = 'author'
-    group = 'group'
+from posts.models import Comment, Group, Post
 
 
 class PostModelTest(TestCase):
-    @classmethod
-    def setUpClass(cls):
-        super().setUpClass()
-        cls.user = User.objects.create_user(username='auth')
+    class Fields(StrEnum):
+        text = 'text'
+        author = 'author'
+        group = 'group'
+        image = 'image'
 
-        cls.post = Post.objects.create(
-            author=cls.user,
-            text='Тестовый пост',
-        )
-
-    def test_post_model_have_correct_str(self):
+    def test_model_have_correct_str(self):
         """Проверяем, что у модели Post корректно работает __str__."""
+        post = mixer.blend(Post)
         self.assertEqual(
-            str(self.post),
-            truncatechars(self.post.text),
+            str(post),
+            truncatechars(post.text),
         )
 
-    def test_post_model_have_correct_verboses(self):
+    def test_model_have_correct_verboses(self):
         """Проверяем, что у модели Post корректно работают verbose_name."""
         verboses = (
-            Fields.text,
-            Fields.author,
-            Fields.group,
+            (self.Fields.text, 'текст'),
+            (self.Fields.author, 'автор'),
+            (self.Fields.group, 'группа'),
+            (self.Fields.image, 'картинка'),
         )
-        self.assertEqual(
-            self.post._meta.get_field(verboses[0]).verbose_name,
-            'текст',
-        )
-        self.assertEqual(
-            self.post._meta.get_field(verboses[1]).verbose_name,
-            'автор',
-        )
-        self.assertEqual(
-            self.post._meta.get_field(verboses[2]).verbose_name,
-            'группа',
-        )
+        for field, verbose in verboses:
+            with self.subTest(field=field, verbose=verbose):
+                self.assertEqual(
+                    Post._meta.get_field(field).verbose_name,
+                    verbose,
+                )
 
-    def test_post_model_have_correct_help_text(self):
+    def test_model_have_correct_help_text(self):
         """Проверяем, что у модели Post корректно работают help_text."""
         helptexts = (
-            Fields.text,
-            Fields.group,
+            (self.Fields.text, 'введите текст поста'),
+            (self.Fields.group, 'выберите группу'),
         )
-        self.assertEqual(
-            self.post._meta.get_field(helptexts[0]).help_text,
-            'введите текст поста',
-        )
-        self.assertEqual(
-            self.post._meta.get_field(helptexts[1]).help_text,
-            'выберите группу',
-        )
+        for field, verbose in helptexts:
+            with self.subTest(field=field, verbose=verbose):
+                self.assertEqual(
+                    Post._meta.get_field(field).help_text,
+                    verbose,
+                )
 
 
 class GroupModelTest(TestCase):
@@ -72,9 +56,50 @@ class GroupModelTest(TestCase):
         super().setUpClass()
         cls.group = mixer.blend(Group)
 
-    def test_group_model_have_correct_str(self):
+    def test_model_have_correct_str(self):
         """Проверяем, что у модели Group корректно работает __str__."""
         self.assertEqual(
             str(self.group),
-            truncatechars(self.group.title, MAX_TITLE_LENGTH),
+            truncatechars(self.group.title),
         )
+
+
+class CommentModelTest(TestCase):
+    class Fields(StrEnum):
+        text = 'text'
+        author = 'author'
+        post = 'post'
+
+    def test_model_have_correct_str(self):
+        """Проверяем, что у модели Comment корректно работает __str__."""
+        comment = mixer.blend(Comment)
+        self.assertEqual(
+            str(comment),
+            f'{comment.text}, автор: {comment.author}',
+        )
+
+    def test_model_have_correct_verboses(self):
+        """Проверяем, что у модели Comment корректно работают verbose_name."""
+        verboses = (
+            (self.Fields.text, 'текст'),
+            (self.Fields.author, 'автор'),
+        )
+        for field, verbose in verboses:
+            with self.subTest(field=field, verbose=verbose):
+                self.assertEqual(
+                    Comment._meta.get_field(field).verbose_name,
+                    verbose,
+                )
+
+    def test_model_have_correct_help_text(self):
+        """Проверяем, что у модели Comment корректно работают help_text."""
+        helptexts = (
+            (self.Fields.text, 'введите текст поста'),
+            (self.Fields.post, 'комментарий к посту'),
+        )
+        for field, verbose in helptexts:
+            with self.subTest(field=field, verbose=verbose):
+                self.assertEqual(
+                    Comment._meta.get_field(field).help_text,
+                    verbose,
+                )

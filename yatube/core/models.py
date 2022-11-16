@@ -18,12 +18,12 @@ class TimestampedModel(DefaultModel, Timestamped):
     )
 
     class Meta:
-        ordering = ('-created',)
+        ordering = ('-modified',)
         abstract = True
 
 
-class TextParams(TimestampedModel):
-    text = text = models.TextField(
+class TextAuthor(TimestampedModel):
+    text = models.TextField(
         verbose_name='текст',
         help_text='введите текст поста',
     )
@@ -35,3 +35,4 @@ class TextParams(TimestampedModel):
 
     class Meta:
         abstract = True
+        ordering = ('-created',)
